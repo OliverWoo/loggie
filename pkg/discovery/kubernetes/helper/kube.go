@@ -79,6 +79,10 @@ func GetPodRelatedLogConfigs(pod *corev1.Pod, lgcLister logconfigLister.LogConfi
 			continue
 		}
 
+		if pod.Namespace != lgc.Namespace {
+			continue
+		}
+
 		if LabelsSubset(lgc.Spec.Selector.LabelSelector, pod.Labels) {
 			ret = append(ret, lgc)
 		}
@@ -372,25 +376,23 @@ func getEmptyDirNodePath(pathPattern string, pod *corev1.Pod, volumeName string,
 	return filepath.Join(emptyDirPath, subPath, pathSuffix)
 }
 
-func GetMatchedPodLabel(labelKeys []string, pod *corev1.Pod) map[string]string {
+func GetMatchedPodLabel(labels map[string]string, pod *corev1.Pod) map[string]string {
 	matchedLabelMap := map[string]string{}
-
-	for _, key := range labelKeys {
-		matchedLabelMap[key] = pod.Labels[key]
+	for from, to := range labels {
+		matchedLabelMap[to] = pod.Labels[from]
 	}
 	return matchedLabelMap
 }
 
-func GetMatchedPodAnnotation(annotationKeys []string, pod *corev1.Pod) map[string]string {
+func GetMatchedPodAnnotation(annotations map[string]string, pod *corev1.Pod) map[string]string {
 	matchedAnnotationMap := map[string]string{}
-
-	for _, key := range annotationKeys {
-		matchedAnnotationMap[key] = pod.Annotations[key]
+	for from, to := range annotations {
+		matchedAnnotationMap[to] = pod.Annotations[from]
 	}
 	return matchedAnnotationMap
 }
 
-func GetMatchedPodEnv(envKeys []string, pod *corev1.Pod, containerName string) map[string]string {
+func GetMatchedPodEnv(envs map[string]string, pod *corev1.Pod, containerName string) map[string]string {
 	containerEnvMap := map[string]string{}
 	for _, container := range pod.Spec.Containers {
 		if containerName != "" && containerName != container.Name {
@@ -403,8 +405,8 @@ func GetMatchedPodEnv(envKeys []string, pod *corev1.Pod, containerName string) m
 	}
 
 	matchedEnvMap := map[string]string{}
-	for _, key := range envKeys {
-		matchedEnvMap[key] = containerEnvMap[key]
+	for from, to := range envs {
+		matchedEnvMap[to] = containerEnvMap[from]
 	}
 	return matchedEnvMap
 }

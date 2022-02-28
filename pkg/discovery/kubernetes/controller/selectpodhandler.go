@@ -101,9 +101,9 @@ func (f *fileSource) setFileConfig(c *file.Config) error {
 }
 
 type matchFields struct {
-	LabelKey      []string `yaml:"labelKey,omitempty"`
-	AnnotationKey []string `yaml:"annotationKey,omitempty"`
-	Env           []string `yaml:"env,omitempty"`
+	Labels      map[string]string `yaml:"labels,omitempty"`
+	Annotations map[string]string `yaml:"annotations,omitempty"`
+	Envs        map[string]string `yaml:"envs,omitempty"`
 }
 
 func (c *Controller) handleLogConfigTypePodAddOrUpdate(lgc *logconfigv1beta1.LogConfig) (err error, podsName []string) {
@@ -417,36 +417,39 @@ func injectFields(config *Config, match *matchFields, src *source.Config, pod *c
 		src.Fields = make(map[string]interface{})
 	}
 
-	m := config.Fields
-	if m.Namespace != "" {
-		src.Fields[m.Namespace] = pod.Namespace
+	fields := config.Fields
+	if fields.Namespace != "" {
+		src.Fields[fields.Namespace] = pod.Namespace
 	}
-	if m.NodeName != "" {
-		src.Fields[m.NodeName] = pod.Spec.NodeName
+	if fields.NodeName != "" {
+		src.Fields[fields.NodeName] = pod.Spec.NodeName
 	}
-	if m.PodName != "" {
-		src.Fields[m.PodName] = pod.Name
+	if fields.NodeIP != "" {
+		src.Fields[fields.NodeIP] = pod.Status.HostIP
 	}
-	if m.ContainerName != "" {
-		src.Fields[m.ContainerName] = containerName
+	if fields.PodName != "" {
+		src.Fields[fields.PodName] = pod.Name
 	}
-	if m.LogConfig != "" {
-		src.Fields[m.LogConfig] = lgcName
+	if fields.ContainerName != "" {
+		src.Fields[fields.ContainerName] = containerName
+	}
+	if fields.LogConfig != "" {
+		src.Fields[fields.LogConfig] = lgcName
 	}
 
 	if match != nil {
-		if len(match.LabelKey) > 0 {
-			for k, v := range helper.GetMatchedPodLabel(match.LabelKey, pod) {
+		if len(match.Labels) > 0 {
+			for k, v := range helper.GetMatchedPodLabel(match.Labels, pod) {
 				src.Fields[k] = v
 			}
 		}
-		if len(match.AnnotationKey) > 0 {
-			for k, v := range helper.GetMatchedPodAnnotation(match.AnnotationKey, pod) {
+		if len(match.Annotations) > 0 {
+			for k, v := range helper.GetMatchedPodAnnotation(match.Annotations, pod) {
 				src.Fields[k] = v
 			}
 		}
-		if len(match.Env) > 0 {
-			for k, v := range helper.GetMatchedPodEnv(match.Env, pod, containerName) {
+		if len(match.Envs) > 0 {
+			for k, v := range helper.GetMatchedPodEnv(match.Envs, pod, containerName) {
 				src.Fields[k] = v
 			}
 		}
